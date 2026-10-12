@@ -9,10 +9,12 @@ Small HTML widgets rendered inside chat sessions.
 
 Both send their result through the host-provided `sendPrompt(text)`.
 
-Load a tagged version through jsDelivr:
+Load a fixed version through jsDelivr by pinning a full commit hash:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/ohnotoomanygreendresses/chat-widgets@v1.0.0/widgets.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/ohnotoomanygreendresses/chat-widgets@<commit-hash>/widgets.js"></script>
 ```
+
+A pinned hash never changes, so a new commit only takes effect once the caller switches to its hash.
 
 This repository holds layout and behavior only. Never commit data, names or content passed in at call time.

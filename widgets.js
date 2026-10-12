@@ -11,7 +11,7 @@
 (function () {
   'use strict';
 
-  var FONT = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css';
+  var FONT = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css';
 
   var CSS_START = `
 .sc{font-family:Pretendard,var(--font-sans);padding:.5rem 0 1rem}
