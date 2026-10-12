@@ -95,15 +95,22 @@
     if (typeof window.sendPrompt === 'function') window.sendPrompt(text);
   }
 
+  // Reads a field by its short alias, falling back to the full column name.
+  function f(r, short, full) { return r[short] !== undefined ? r[short] : r[full]; }
+
   // Turns raw query rows into the shape the picker renders.
-  // cards: rows with 이름/유형/소속/단계. list: rows with 이름/종류/상위 설정.
-  // Already-shaped data (with a settings array) passes through untouched.
+  // cards: rows with n/t/g/s (or 이름/유형/소속/단계).
+  // list: rows with n/k/p (or 이름/종류/상위 설정).
+  // Extra fields are ignored. Already-shaped data (with a settings array) passes through untouched.
   function shape(raw) {
     raw = raw || {};
     if (Array.isArray(raw.settings)) return raw;
-    var rows = raw.cards || [], list = raw.list || [];
+    var rows = raw.cards || [];
+    var list = (raw.list || []).map(function (r) {
+      return { name: f(r, 'n', '이름'), kind: f(r, 'k', '종류'), parent: f(r, 'p', '상위 설정') };
+    });
     var cards = rows.map(function (r) {
-      return { type: r['유형'], name: r['이름'], group: r['소속'] || null, steps: r['단계'] || '없음' };
+      return { type: f(r, 't', '유형'), name: f(r, 'n', '이름'), group: f(r, 'g', '소속') || null, steps: f(r, 's', '단계') || '없음' };
     });
     var starts = cards.filter(function (c) { return c.type !== '재사용'; });
     var reuse = cards
@@ -115,13 +122,13 @@
       })
       .map(function (x) { return x[0]; });
     var settings = list
-      .filter(function (r) { return r['종류'] === '설정'; })
+      .filter(function (r) { return r.kind === '설정'; })
       .map(function (s) {
         return {
-          name: s['이름'],
+          name: s.name,
           phases: list
-            .filter(function (p) { return p['종류'] === '국면' && p['상위 설정'] === s['이름']; })
-            .map(function (p) { return p['이름']; })
+            .filter(function (p) { return p.kind === '국면' && p.parent === s.name; })
+            .map(function (p) { return p.name; })
         };
       });
     return { cards: starts.concat(reuse), settings: settings, pending: raw.pending || [] };
