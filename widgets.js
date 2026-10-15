@@ -1,17 +1,23 @@
 /*
  * chat-widgets
  * Card picker and follow-up buttons rendered inside chat widgets.
- * The chat passes in its data at call time; this file holds only layout and behavior.
+ * This file holds only layout and behavior. Card data arrives in one of two ways:
+ * passed in by the chat at call time, or read from the encrypted snapshot in data/.
  *
- *   startCard(raw, root)      raw = { cards: [...rows], list: [...rows], pending: [{title, target}] }
+ *   startCard(raw, root)              raw = { cards: [...rows], list: [...rows], pending: [{title, target}], at }
+ *   startCardSealed(key, root, src?)  opens the encrypted snapshot (src defaults to SNAPSHOT) with key, then startCard
  *   afterCreation(title, root)
  *
- * Both rely on the host-provided global sendPrompt(text).
+ * All rely on the host-provided global sendPrompt(text).
  */
 (function () {
   'use strict';
 
   var FONT = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css';
+
+  // Encrypted card snapshot written by tools/seal.py. Read from the branch, not a pinned
+  // commit, so a refreshed snapshot needs no caller change (purge jsDelivr after pushing).
+  var SNAPSHOT = 'https://cdn.jsdelivr.net/gh/ohnotoomanygreendresses/chat-widgets@main/data/start.txt';
 
   var CSS_START = `
 .sc{font-family:Pretendard,var(--font-sans);padding:.5rem 0 1rem}
@@ -40,6 +46,7 @@
 .sc #fc{min-height:96px}
 .sc .go{margin-top:10px}
 .sc .msg{font-size:13px;color:var(--text-secondary);margin:12px 2px 0;min-height:18px}
+.sc .at{margin:14px 2px 0}
 .sc .hide{display:none}
 `;
 
@@ -151,6 +158,7 @@
     var flow = el('div', 'hide');
     var msg = el('div', 'msg');
     sc.append(home, flow, msg);
+    if (raw && raw.at) sc.append(el('div', 'st at', '목록 기준 ' + raw.at));
     root.append(sc);
 
     var sent = false, F = null;
@@ -297,6 +305,40 @@
     };
   }
 
+  function unb64(s) {
+    s = String(s).trim().replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var b = atob(s), u = new Uint8Array(b.length);
+    for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+    return u;
+  }
+
+  // Snapshot format: base64url of (12-byte IV || AES-256-GCM ciphertext with tag) over UTF-8 JSON.
+  function openSnapshot(key, src) {
+    return fetch(src || SNAPSHOT, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('fetch ' + r.status);
+        return r.text();
+      })
+      .then(function (t) {
+        var buf = unb64(t);
+        return crypto.subtle.importKey('raw', unb64(key), 'AES-GCM', false, ['decrypt']).then(function (k) {
+          return crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, k, buf.slice(12));
+        });
+      })
+      .then(function (p) { return JSON.parse(new TextDecoder().decode(p)); });
+  }
+
+  function startCardSealed(key, root, src) {
+    root = root || document.body;
+    root.textContent = '카드를 불러오는 중';
+    openSnapshot(key, src).then(
+      function (d) { startCard(d, root); },
+      function (e) { root.textContent = '카드 목록을 열지 못했습니다 (' + ((e && (e.message || e.name)) || e) + ')'; }
+    );
+  }
+
   window.startCard = startCard;
+  window.startCardSealed = startCardSealed;
   window.afterCreation = afterCreation;
 })();
