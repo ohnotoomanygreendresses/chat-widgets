@@ -67,10 +67,9 @@
   var AFTER_HTML = `
 <div class="ac">
 <div class="acts">
-<button type="button" id="rx">반응 기록</button>
+<button type="button" id="rx">반응 기록 ↗</button>
 <button type="button" id="fu">분기·후속 제안 ↗</button>
 </div>
-<div id="rxbox" class="hide"><textarea id="rxt" placeholder="읽고 난 느낌을 적어 주세요. 어느 편인지 적어도 됩니다"></textarea><div class="err" id="rxe"></div><button type="button" class="rs" id="rxs">반응 보내기 ↗</button></div>
 <div class="sv"><select id="ef" aria-label="추론 수준"><option>low</option><option>medium</option><option>high</option><option>xhigh</option><option selected>max</option></select><input id="si" type="text" placeholder="비우면 이 세션의 산출물 모두 저장" aria-label="저장 지시"><button type="button" id="sb">저장 ↗</button></div>
 <div class="msg" id="msg"></div>
 </div>`;
@@ -287,15 +286,7 @@
     var $ = function (i) { return root.querySelector('#' + i); };
     var msg = $('msg');
     function send(t, b, n) { b.disabled = true; msg.textContent = n; post(t); }
-    $('rx').onclick = function () { $('rxbox').classList.remove('hide'); $('rxt').focus(); };
-    $('rxt').oninput = function () { $('rxe').textContent = ''; };
-    $('rxs').onclick = function () {
-      var v = $('rxt').value.trim();
-      if (!v) { $('rxe').textContent = '반응을 먼저 적어 주세요'; return; }
-      $('rx').disabled = true;
-      $('rxt').disabled = true;
-      send('창작 후 · 반응 기록 · ' + title + '\n' + v, $('rxs'), '반응을 보냈습니다');
-    };
+    $('rx').onclick = function () { send('창작 후 · 반응 기록 · ' + title, $('rx'), '반응 화면을 요청했습니다'); };
     $('fu').onclick = function () { send('창작 후 · 분기·후속 제안 · ' + title, $('fu'), '분기·후속 제안을 요청했습니다'); };
     $('sb').onclick = function () {
       var v = $('si').value.trim();
